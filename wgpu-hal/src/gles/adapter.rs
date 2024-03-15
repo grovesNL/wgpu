@@ -886,6 +886,13 @@ impl super::Adapter {
     }
 }
 
+impl super::Device {
+    pub unsafe fn rebind_vao_hack(&self) {
+        let gl = &self.shared.context.lock();
+        unsafe { gl.bind_vertex_array(Some(self.main_vao)); }
+    }
+}
+
 impl crate::Adapter<super::Api> for super::Adapter {
     unsafe fn open(
         &self,
