@@ -113,7 +113,10 @@ impl super::CommandEncoder {
 
     pub(super) fn leave_blit(&mut self) {
         if let Some(encoder) = self.state.blit.take() {
-            encoder.end_encoding();
+            objc::rc::autoreleasepool(move || {
+                encoder.end_encoding();
+                drop(encoder);
+            });
         }
     }
 
@@ -207,10 +210,16 @@ impl crate::CommandEncoder for super::CommandEncoder {
         // when discarding, we don't have a guarantee that
         // everything is in a good state, so check carefully
         if let Some(encoder) = self.state.render.take() {
-            encoder.end_encoding();
+            objc::rc::autoreleasepool(|| {
+                encoder.end_encoding();
+                drop(encoder);
+            });
         }
         if let Some(encoder) = self.state.compute.take() {
-            encoder.end_encoding();
+            objc::rc::autoreleasepool(|| {
+                encoder.end_encoding();
+                drop(encoder);
+            });
         }
         self.raw_cmd_buf = None;
     }
@@ -640,7 +649,11 @@ impl crate::CommandEncoder for super::CommandEncoder {
     }
 
     unsafe fn end_render_pass(&mut self) {
-        self.state.render.take().unwrap().end_encoding();
+        objc::rc::autoreleasepool(|| {
+            let encoder = self.state.render.take().unwrap();
+            encoder.end_encoding();
+            drop(encoder);
+        });
     }
 
     unsafe fn set_bind_group(
@@ -1211,7 +1224,11 @@ impl crate::CommandEncoder for super::CommandEncoder {
         });
     }
     unsafe fn end_compute_pass(&mut self) {
-        self.state.compute.take().unwrap().end_encoding();
+        objc::rc::autoreleasepool(|| {
+            let encoder = self.state.compute.take().unwrap();
+            encoder.end_encoding();
+            drop(encoder);
+        });
     }
 
     unsafe fn set_compute_pipeline(&mut self, pipeline: &super::ComputePipeline) {
